@@ -7,22 +7,27 @@ var roleHarvester = {
             if(creep.harvest(sources[i%sources.length]) == ERR_NOT_IN_RANGE) {
                 creep.moveTo(sources[i%sources.length]);
             }
-            creep.say('harvesting');
         }
         else {
-            var targets = creep.room.find(FIND_STRUCTURES, {
+            var target = creep.pos.findClosestByPath(FIND_STRUCTURES, {
                     filter: (structure) => {
                         return (structure.structureType == STRUCTURE_EXTENSION ||
                                 structure.structureType == STRUCTURE_SPAWN ||
-                                structure.structureType == STRUCTURE_TOWER) && structure.energy < structure.energyCapacity;
+                                structure.structureType == STRUCTURE_TOWER ||
+                                structure.structureType == STRUCTURE_CONTAINER) && structure.energy < structure.energyCapacity;
                     }
             });
-            if(targets.length > 0) {
-                if(creep.transfer(targets[0], RESOURCE_ENERGY) == ERR_NOT_IN_RANGE) {
-                    creep.moveTo(targets[0]);
+            if(target) {
+                if(creep.transfer(target, RESOURCE_ENERGY) == ERR_NOT_IN_RANGE) {
+                    creep.moveTo(target);
+                }
+            } else {
+                if(i%2 == 0){
+                    creep.memory.role = 'builder';
+                } else {
+                    creep.memory.role = 'upgrader';
                 }
             }
-            creep.say('delivering');
         }
     }
 };
