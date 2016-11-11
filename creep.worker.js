@@ -3,8 +3,9 @@
  */
 var manager = require('manager');
 var settings = require('settings');
+var utilities = require('utilities');
 var worker = {
-    composition: [WORK, WORK, MOVE, CARRY, CARRY],
+    composition: [WORK, WORK, WORK, WORK, MOVE, MOVE, CARRY],
     harvest: function (creep) {
         if (creep.carry.energy < creep.carryCapacity) {
             if (creep.memory.energySource) {
@@ -114,7 +115,9 @@ var worker = {
     },
     run: function (creep) {
         if (creep.ticksToLive < 10) {
-            manager.assignTarget(creep);
+            if(creep.memory.targetSource){
+                Memory.sources[creep.memory.targetSource].Workers = utilities.removeFromArray(Memory.sources[creep.memory.targetSource].Workers,creep.name);
+            }
             creep.suicide();
         }
 

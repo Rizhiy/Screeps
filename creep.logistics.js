@@ -3,7 +3,7 @@
  */
 var manager = require('manager');
 var logistics = {
-    composition: [MOVE, MOVE, MOVE, MOVE, CARRY, CARRY, CARRY, CARRY],
+    composition: [MOVE, MOVE, MOVE, MOVE, MOVE, CARRY, CARRY, CARRY, CARRY, CARRY],
     balance: function (creep) {
         var targets = creep.room.find(FIND_STRUCTURES, {
             filter: function (structure) {
