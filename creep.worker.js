@@ -11,9 +11,7 @@ var worker = {
             if (creep.memory.energySource) {
                 creep.memory.energySource = null;
             }
-            if (!creep.memory.targetSource) {
-                manager.assignSource(creep);
-            }
+            manager.assignSource(creep);
             var resourse = Game.getObjectById(creep.memory.targetSource);
             if (resourse) {
                 if (creep.room == resourse.room) {
@@ -29,9 +27,7 @@ var worker = {
                 creep.memory.task = "repair";
             }
         } else {
-            if (!creep.memory.target) {
-                manager.assignTarget(creep);
-            }
+            manager.assignTarget(creep);
             var target = creep.memory.target;
             if (target) {
                 target = Game.getObjectById(creep.memory.target.id);

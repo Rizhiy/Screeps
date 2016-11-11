@@ -62,7 +62,6 @@ var manager = {
         }
         if (closestSource) {
             creep.memory.targetSource = closestSource.id;
-            creep.memory.target = null;
         }
     },
     assignTarget: function (creep) {
@@ -77,18 +76,19 @@ var manager = {
         if (target) {
             creep.memory.target = target;
             return;
+        } else {
+            target = creep.pos.findClosestByPath(FIND_STRUCTURES, {
+                filter: function (structure) {
+                    return (structure.structureType == STRUCTURE_CONTAINER && structure.store.energy < structure.storeCapacity);
+                }
+            });
         }
-        var target = creep.pos.findClosestByPath(FIND_STRUCTURES, {
-            filter: function (structure) {
-                return (structure.structureType == STRUCTURE_CONTAINER && structure.store.energy < structure.storeCapacity);
-            }
-        });
         if (target) {
             creep.memory.target = target;
         }
 
-
-    },
+    }
+    ,
     findEnergySource: function (creep) {
         var target = creep.pos.findClosestByPath(FIND_STRUCTURES, {
             filter: function (structure) {
@@ -101,12 +101,12 @@ var manager = {
     }
 };
 
-function getQueueLengthForSource(source){
+function getQueueLengthForSource(source) {
     var creeps = Game.rooms[source.room.name].find(FIND_MY_CREEPS);
     var count = 0;
-    for(var creep_index in creeps){
+    for (var creep_index in creeps) {
         var creep = creeps[creep_index];
-        if(creep.memory.targetSource == source.id){
+        if (creep.memory.targetSource == source.id) {
             count++;
         }
     }
