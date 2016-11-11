@@ -21,7 +21,7 @@ var worker = {
                     if (responseCode == ERR_NOT_IN_RANGE) {
                         creep.moveTo(resourse);
                     }
-                    if (responseCode == ERR_NOT_ENOUGH_RESOURCES){
+                    if (responseCode == ERR_NOT_ENOUGH_RESOURCES) {
                         creep.memory.targetSource = null;
                     }
                 }
@@ -118,19 +118,19 @@ var worker = {
         }
     },
     run: function (creep) {
-        if (creep.ticksToLive < 10) {
-            if(creep.memory.targetSource){
-                Memory.sources[creep.memory.targetSource].Workers = utilities.removeFromArray(Memory.sources[creep.memory.targetSource].Workers,creep.name);
-            }
-            creep.suicide();
+        if (creep.ticksToLive < 2) {
+            utilities.cleanSourceQueue(creep);
         }
-
         if (!creep.memory.task) {
             creep.memory.task = "harvest";
         }
         if (creep.memory.task == "harvest") {
             this.harvest(creep);
+        } else {
+            creep.memory.targetSource = null;
         }
+
+
 
         if (creep.carry.energy == 0 && creep.memory.task != "harvest" || creep.memory.task == "getEnergy") {
             this.getEnergy(creep);
@@ -147,5 +147,6 @@ var worker = {
         }
     }
 };
+
 
 module.exports = worker;

@@ -8,7 +8,7 @@ function findFreeSources() {
     var freeSources = [];
     for (var source in Memory.sources) {
         var source_object = Memory.sources[source];
-        if ((source_object.Workers.length / source_object.WT < 1.5 || source_object.Workers == 0) && source_object.energy > 0) {
+        if (getQueueLengthForSource(source_object) < source_object.WT + 1 && source_object.energy > 0) {
             freeSources.push(source_object.id);
         }
     }
@@ -24,8 +24,8 @@ var manager = {
         for (var source in sources) {
             var source_object = sources[source];
             Memory.sources[source_object.id] = source_object;
-            Memory.sources[source_object.id]["WT"] = 0;
-            Memory.sources[source_object.id]["Workers"] = [];
+            Memory.sources[source_object.id].WT = 0;
+            Memory.sources[source_object.id].lastEmptyTime = Game.time - 300;
             for (var i = -1; i < 2; i++) {
                 for (var j = -1; j < 2; j++) {
                     if (Game.map.getTerrainAt(source_object.pos.x + i, source_object.pos.y + j, source_object.room.name) != "wall") {
@@ -60,21 +60,16 @@ var manager = {
             }
         }
         if (closestSource) {
-            Memory.sources[closestSource.id].Workers.push(creep.name);
             creep.memory.targetSource = closestSource.id;
             creep.memory.target = null;
         }
     },
     assignTarget: function (creep) {
-        if (creep.memory.targetSource) {
-            Memory.sources[creep.memory.targetSource].Workers = utilities.removeFromArray(Memory.sources[creep.memory.targetSource].Workers,creep.name);
-            creep.memory.targetSource = null;
-        }
         var target = creep.pos.findClosestByPath(FIND_STRUCTURES, {
             filter: function (structure) {
                 return ((structure.structureType == STRUCTURE_EXTENSION ||
-                    structure.structureType == STRUCTURE_SPAWN ||
-                    structure.structureType == STRUCTURE_TOWER) && structure.energy < structure.energyCapacity);
+                structure.structureType == STRUCTURE_SPAWN ||
+                structure.structureType == STRUCTURE_TOWER) && structure.energy < structure.energyCapacity);
             }
         });
         if (target) {
@@ -104,5 +99,16 @@ var manager = {
     }
 };
 
+function getQueueLengthForSource(source){
+    var creeps = Game.rooms[source.room.name].find(FIND_MY_CREEPS);
+    var count = 0;
+    for(var creep_index in creeps){
+        var creep = creeps[creep_index];
+        if(creep.memory.targetSource == source.id){
+            count++;
+        }
+    }
+    return count;
+}
 
 module.exports = manager;
