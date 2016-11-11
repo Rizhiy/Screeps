@@ -17,8 +17,12 @@ var worker = {
             var resourse = Game.getObjectById(creep.memory.targetSource);
             if (resourse) {
                 if (creep.room == resourse.room) {
-                    if (creep.harvest(resourse) == ERR_NOT_IN_RANGE) {
+                    var responseCode = creep.harvest(resourse);
+                    if (responseCode == ERR_NOT_IN_RANGE) {
                         creep.moveTo(resourse);
+                    }
+                    if (responseCode == ERR_NOT_ENOUGH_RESOURCES){
+                        creep.memory.targetSource = null;
                     }
                 }
             } else {
