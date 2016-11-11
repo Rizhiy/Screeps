@@ -36,6 +36,7 @@ var manager = {
         }
     },
     assignSource: function (creep) {
+        creep.memory.targetSource = null;
         var freeSources = findFreeSources();
         var closestSource;
         var shortestRoute;
@@ -65,6 +66,7 @@ var manager = {
         }
     },
     assignTarget: function (creep) {
+        creep.memory.target = null;
         var target = creep.pos.findClosestByPath(FIND_STRUCTURES, {
             filter: function (structure) {
                 return ((structure.structureType == STRUCTURE_EXTENSION ||

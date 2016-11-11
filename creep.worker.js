@@ -59,10 +59,10 @@ var worker = {
     build: function (creep) {
         var target = creep.pos.findClosestByPath(FIND_CONSTRUCTION_SITES);
         if (target) {
-            if (creep.build(target) == ERR_NOT_IN_RANGE) {
+            var responseCode = creep.build(target);
+            if (responseCode == ERR_NOT_IN_RANGE) {
                 creep.moveTo(target);
             }
-            creep.build(target);
         } else {
             creep.memory.task = "upgrade";
         }
@@ -82,17 +82,12 @@ var worker = {
             if (responseCode == ERR_NOT_IN_RANGE) {
                 creep.moveTo(target);
             }
-            if (responseCode == ERR_NOT_ENOUGH_RESOURCES) {
-                creep.memory.task = "getEnergy";
-            }
         } else {
             creep.memory.task = "build";
         }
     },
     getEnergy: function (creep) {
-        if (!creep.memory.energySource) {
-            manager.findEnergySource(creep);
-        }
+        manager.findEnergySource(creep);
         var energySource = creep.memory.energySource;
         if (energySource) {
             energySource = Game.getObjectById(creep.memory.energySource.id);
@@ -118,9 +113,6 @@ var worker = {
         }
     },
     run: function (creep) {
-        if (creep.ticksToLive < 2) {
-            utilities.cleanSourceQueue(creep);
-        }
         if (!creep.memory.task) {
             creep.memory.task = "harvest";
         }
@@ -129,8 +121,6 @@ var worker = {
         } else {
             creep.memory.targetSource = null;
         }
-
-
 
         if (creep.carry.energy == 0 && creep.memory.task != "harvest" || creep.memory.task == "getEnergy") {
             this.getEnergy(creep);

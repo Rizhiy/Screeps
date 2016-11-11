@@ -21,34 +21,33 @@ var spawn = {
             }
             // console.log(Game.time - Memory.sources[source.id].lastEmptyTime);
             // if(Game.time - Memory.sources[source.id].lastEmptyTime > 300){
-            if (countCreeps() < 20) {
+            if (this.countCreeps().total < 20) {
                 createCreep();
             }
         }
+    },
+    countCreeps: function(){
+        var count = {};
+        count.harvester = 0;
+        count.logistics = 0;
+        count.worker = 0;
+        count.total = 0;
+        for (var name in Game.creeps) {
+            var creep = Game.creeps[name];
+            if (creep.memory.role == "harvester") {
+                count.harvester++;
+            }
+            if (creep.memory.role == 'logistics') {
+                count.logistics++;
+            }
+            if (creep.memory.role == 'worker') {
+                count.worker++;
+            }
+            count.total++;
+        }
+        return count;
     }
 };
-
-function countCreeps() {
-    var count = {};
-    count.harvester = 0;
-    count.logistics = 0;
-    count.worker = 0;
-    count.total = 0;
-    for (var name in Game.creeps) {
-        var creep = Game.creeps[name];
-        if (creep.memory.role == "harvester") {
-            count.harvester++;
-        }
-        if (creep.memory.role == 'logistics') {
-            count.logistics++;
-        }
-        if (creep.memory.role == 'worker') {
-            count.worker++;
-        }
-        count.total++;
-    }
-    return count;
-}
 
 function calcCreepRatio(count) {
     var creepRatio = {};
@@ -70,7 +69,7 @@ function createCreep() {
             console.log('Clearing non-existing creep memory:', name);
         }
     }
-    var creepCount = countCreeps();
+    var creepCount = spawn.countCreeps();
     var creepRatio = calcCreepRatio(creepCount);
     var creepSpawned = false;
     for (var ratio in creepRatio) {
