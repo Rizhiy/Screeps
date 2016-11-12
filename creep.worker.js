@@ -20,11 +20,12 @@ var worker = {
                         creep.moveTo(resourse);
                     }
                     if (responseCode == ERR_NOT_ENOUGH_RESOURCES) {
-                        creep.memory.targetSource = null;
+                        creep.memory.target = null;
+                        manager.assignSource(creep);
                     }
                 }
             } else {
-                creep.memory.task = "repair";
+                creep.memory.task = "upgrade";
             }
         } else {
             manager.assignTarget(creep);
@@ -42,7 +43,7 @@ var worker = {
                     manager.assignTarget(creep);
                 }
             } else {
-                creep.memory.task = "repair";
+                creep.memory.task = "upgrade";
             }
         }
     },
@@ -50,62 +51,6 @@ var worker = {
         var responseCode = creep.upgradeController(creep.room.controller);
         if (responseCode == ERR_NOT_IN_RANGE) {
             creep.moveTo(creep.room.controller);
-        }
-    },
-    build: function (creep) {
-        var target = creep.pos.findClosestByPath(FIND_CONSTRUCTION_SITES);
-        if (target) {
-            var responseCode = creep.build(target);
-            if (responseCode == ERR_NOT_IN_RANGE) {
-                creep.moveTo(target);
-            }
-        } else {
-            creep.memory.task = "upgrade";
-        }
-
-    },
-    repair: function (creep) {
-        var target = creep.pos.findClosestByPath(FIND_STRUCTURES, {
-            filter: function (object) {
-                if (object.structureType == STRUCTURE_WALL) {
-                    return object.hits < settings.wallHealth;
-                }
-                return object.hits < object.hitsMax * 2 / 3;
-            }
-        });
-        if (target) {
-            var responseCode = creep.repair(target);
-            if (responseCode == ERR_NOT_IN_RANGE) {
-                creep.moveTo(target);
-            }
-        } else {
-            creep.memory.task = "build";
-        }
-    },
-    getEnergy: function (creep) {
-        manager.findEnergySource(creep);
-        var energySource = creep.memory.energySource;
-        if (energySource) {
-            energySource = Game.getObjectById(creep.memory.energySource.id);
-            var responseCode = creep.withdraw(energySource, RESOURCE_ENERGY);
-            if (responseCode == ERR_NOT_IN_RANGE) {
-                creep.moveTo(energySource);
-            }
-            if (responseCode == ERR_INVALID_TARGET) {
-                manager.assignTarget(creep);
-            }
-            if (responseCode == ERR_NOT_ENOUGH_RESOURCES) {
-                creep.memory.task = "harvest";
-            }
-            if (responseCode == ERR_FULL) {
-                creep.memory.task = "repair";
-            }
-        } else {
-            creep.memory.task = "harvest";
-        }
-
-        if (creep.carry.energy == creep.carryCapacity) {
-            creep.memory.task = "repair";
         }
     },
     run: function (creep) {
@@ -119,17 +64,11 @@ var worker = {
         }
 
         if (creep.carry.energy == 0 && creep.memory.task != "harvest" || creep.memory.task == "getEnergy") {
-            this.getEnergy(creep);
+            manager.getEnergy(creep);
         }
 
         if (creep.memory.task == "upgrade") {
             this.upgrade(creep);
-        }
-        if (creep.memory.task == "build") {
-            this.build(creep);
-        }
-        if (creep.memory.task == "repair") {
-            this.repair(creep);
         }
     }
 };

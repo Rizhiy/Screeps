@@ -1,51 +1,22 @@
 var worker = require("creep.worker");
 var logistics = require("creep.logistics");
+var builder = require("creep.builder");
 var utilities = require("utilities");
-
-var desiredRatio = {};
-desiredRatio.worker = 0.8;
-desiredRatio.logistics = 0.2;
-desiredRatio.harvester = 0.0;
+var manager = require("manager");
 
 var creepComposition = {};
 creepComposition.worker = worker.composition;
 creepComposition.logistics = logistics.composition;
 
-var sources = Game.spawns.Main.room.find(FIND_SOURCES);
+var sources = Memory.sources;
 var spawn = {
     CreateCreeps: function () {
-        for (var source_index in sources) {
-            var source = sources[source_index];
-            if (source.energy == 0) {
-                Memory.sources[source.id].lastEmptyTime = Game.time;
-            }
-            // console.log(Game.time - Memory.sources[source.id].lastEmptyTime);
-            // if(Game.time - Memory.sources[source.id].lastEmptyTime > 300){
-            if (this.countCreeps().total < 20) {
-                createCreep();
-            }
+        if (Game.time % 3 == 0) {
+            createCreep();
         }
     },
-    countCreeps: function(){
-        var count = {};
-        count.harvester = 0;
-        count.logistics = 0;
-        count.worker = 0;
-        count.total = 0;
-        for (var name in Game.creeps) {
-            var creep = Game.creeps[name];
-            if (creep.memory.role == "harvester") {
-                count.harvester++;
-            }
-            if (creep.memory.role == 'logistics') {
-                count.logistics++;
-            }
-            if (creep.memory.role == 'worker') {
-                count.worker++;
-            }
-            count.total++;
-        }
-        return count;
+    generateNewCreepName: function () {
+        return Math.random().toString().slice(2, 7);
     }
 };
 
@@ -59,35 +30,64 @@ function calcCreepRatio(count) {
 }
 
 function createCreep() {
-    for (var name in Game.creeps) {
+    //delete old creepNames
+    var creepCount = utilities.countCreeps();
+    for (var name in Memory.creeps) {
         if (!Game.creeps[name]) {
-            for (var source in Memory.sources) {
-                Memory.sources[source].Workers = this.removeFromArray(Memory.sources[source].Workers, name);
-            }
-
             delete Memory.creeps[name];
-            console.log('Clearing non-existing creep memory:', name);
+            // console.log('Clearing non-existing creep memory:', name);
         }
     }
-    var creepCount = spawn.countCreeps();
-    var creepRatio = calcCreepRatio(creepCount);
-    var creepSpawned = false;
-    for (var ratio in creepRatio) {
-        if ((!creepRatio[ratio] && ratio != "harvester") || creepRatio[ratio] < desiredRatio[ratio]) {
-            var responseCode = Game.spawns.Main.createCreep(creepComposition[ratio], Math.random().toString().slice(2, 7), {role: ratio});
 
-            if (responseCode < 0) {
-            } else {
-                creepSpawned = true;
-            }
+    var responseCode;
+    //check workers
+    for (var source_index in sources) {
+        var source = sources[source_index];
+        if (manager.sourceAvailable(source)) {
+            responseCode = Game.spawns.Main.createCreep(worker.composition, spawn.generateNewCreepName(), {role: "worker"});
         }
     }
-    if (!creepSpawned) {
-        if (creepCount.harvester < 2 && creepCount.worker == 0) {
-            Game.spawns.Main.createCreep([WORK, MOVE, CARRY], Math.random().toString(), {role: "harvester"});
-        } else {
-            Game.spawns.Main.createCreep(creepComposition.worker, Math.random().toString().slice(2, 7), {role: "worker"});
+
+    //check logistics
+    var targets = Game.spawns.Main.room.find(FIND_STRUCTURES, {
+        filter: function (structure) {
+            return structure.structureType == STRUCTURE_CONTAINER;
         }
+    });
+    var minValue = 1;
+    var minTarget = targets[0];
+    var maxValue = 0;
+    var maxTarget = targets[0];
+    for (var target_index in targets) {
+        var target = targets[target_index];
+        var fullness;
+        if (target.structureType == STRUCTURE_CONTAINER) {
+            fullness = target.store.energy / target.storeCapacity;
+        } else {
+            fullness = target.energy / target.energyCapacity;
+        }
+        if (fullness > maxValue && maxTarget.structureType == STRUCTURE_CONTAINER) {
+            maxValue = fullness;
+            maxTarget = target;
+        }
+        if (fullness < minValue) {
+            minValue = fullness;
+            minTarget = target;
+        }
+    }
+
+    if (maxValue - minValue > 0.5 || (minValue < 0.1 && utilities.countCreeps().logistics < 2)) {
+        responseCode = Game.spawns.Main.createCreep(logistics.composition, spawn.generateNewCreepName(), {role: "logistics"});
+    }
+
+    //check builders
+    if (manager.checkBuildings(Game.spawns.Main) || (manager.checkConstruction(Game.spawns.Main) && utilities.countCreeps().builder < 4)) {
+        responseCode = Game.spawns.Main.createCreep(builder.composition, Math.random().toString().slice(2, 7), {role: "builder"});
+    }
+
+    //bootstrap in case of failure
+    if (responseCode == -6 && creepCount.worker == 0 && creepCount.harvester < 2) {
+        Game.spawns.Main.createCreep([WORK, CARRY, MOVE], Math.random().toString().slice(2, 7), {role: "harvester"});
     }
 }
 

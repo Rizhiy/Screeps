@@ -3,12 +3,12 @@
  */
 
 var utilities = require('utilities');
-
+var settings = require("settings");
 function findFreeSources() {
     var freeSources = [];
     for (var source in Memory.sources) {
         var source_object = Memory.sources[source];
-        if (getQueueLengthForSource(source_object) < source_object.WT + 1 && source_object.energy > 0) {
+        if (manager.sourceAvailable(source_object) && source_object.energy > 0) {
             freeSources.push(source_object.id);
         }
     }
@@ -24,12 +24,12 @@ var manager = {
         for (var source in sources) {
             var source_object = sources[source];
             Memory.sources[source_object.id] = source_object;
-            Memory.sources[source_object.id].WT = 0;
+            Memory.sources[source_object.id].WP = 0;
             Memory.sources[source_object.id].lastEmptyTime = Game.time - 300;
             for (var i = -1; i < 2; i++) {
                 for (var j = -1; j < 2; j++) {
                     if (Game.map.getTerrainAt(source_object.pos.x + i, source_object.pos.y + j, source_object.room.name) != "wall") {
-                        Memory.sources[source_object.id]["WT"]++;
+                        Memory.sources[source_object.id].WP++;
                     }
                 }
             }
@@ -79,7 +79,9 @@ var manager = {
         } else {
             target = creep.pos.findClosestByPath(FIND_STRUCTURES, {
                 filter: function (structure) {
-                    return (structure.structureType == STRUCTURE_CONTAINER && structure.store.energy < structure.storeCapacity);
+                    return ((structure.structureType == STRUCTURE_CONTAINER ||
+                    structure.structureType == STRUCTURE_STORAGE) &&
+                    structure.store.energy < structure.storeCapacity);
                 }
             });
         }
@@ -98,19 +100,58 @@ var manager = {
         if (target) {
             creep.memory.energySource = target;
         }
+    },
+    getEnergy: function (creep) {
+        manager.findEnergySource(creep);
+        if (creep.memory.energySource) {
+            var energySource = Game.getObjectById(creep.memory.energySource.id);
+            var responseCode = creep.withdraw(energySource, RESOURCE_ENERGY);
+            if (responseCode == ERR_NOT_IN_RANGE) {
+                creep.moveTo(energySource);
+            }
+
+        }
+    },
+    checkBuildings: function (spawn) {
+        var target = spawn.room.find(FIND_MY_STRUCTURES, {
+            filter: function (object) {
+                if (object.structureType == STRUCTURE_WALL || object.structureType == STRUCTURE_RAMPART) {
+                    return object.hits < settings.wallHealth;
+                }
+                return object.hits < object.hitsMax * 3 / 5;
+            }
+        });
+        if (target.length) {
+            return true;
+        } else {
+            return false;
+        }
+    },
+    checkConstruction: function (spawn) {
+        var target = spawn.room.find(FIND_MY_CONSTRUCTION_SITES);
+        if (target.length > utilities.countCreeps().builder * 3) {
+            return true;
+        } else {
+            return false;
+        }
+    },
+    getQueueLengthForSource: function (source) {
+        var creeps = Game.rooms[source.room.name].find(FIND_MY_CREEPS);
+        var count = 0;
+        for (var creep_index in creeps) {
+            var creep = creeps[creep_index];
+            if (creep.memory.targetSource == source.id) {
+                count++;
+            }
+        }
+        return count;
+    },
+    sourceQueueFull: function (source) {
+        return !(this.getQueueLengthForSource(source) < source.WP);
+    },
+    sourceAvailable: function (source) {
+        return !this.sourceQueueFull(source) && source.energy > 0;
     }
 };
-
-function getQueueLengthForSource(source) {
-    var creeps = Game.rooms[source.room.name].find(FIND_MY_CREEPS);
-    var count = 0;
-    for (var creep_index in creeps) {
-        var creep = creeps[creep_index];
-        if (creep.memory.targetSource == source.id) {
-            count++;
-        }
-    }
-    return count;
-}
 
 module.exports = manager;
