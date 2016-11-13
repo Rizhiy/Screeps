@@ -2,6 +2,8 @@
  * Created by rizhiy on 11/11/16.
  */
 
+var settings = require("settings");
+
 var utilities = {
     removeFromArray: function (array, value) {
         return array.filter(function (el) {
@@ -45,6 +47,21 @@ var utilities = {
         }
         return count;
     },
+    countCreepsInRoom: function (roomName) {
+        var count = {};
+        count.total = 0;
+        for (var creepType_index in settings.creepTypes) {
+            count[settings.creepTypes[creepType_index]] = 0;
+        }
+        for (var creepName in Game.creeps) {
+            var creep = Game.creeps[creepName];
+            if (creep.memory.role && creep.room.name == roomName) {
+                count[creep.memory.role]++;
+                count.total++;
+            }
+        }
+        return count;
+    },
     calculateComposition: function (energy, creepPrototype) {
         var composition = [];
         var potentialComposition = [];
@@ -57,7 +74,8 @@ var utilities = {
             composition = potentialComposition;
             potentialComposition = [];
             if (multiplier == 0) {
-                composition = ["work", "move", "carry"];
+                composition = ["move", "carry", "work"];
+                if (creepPrototype.type == "logistics") composition.splice(-1);
                 potentialComposition = composition;
             } else {
                 if (Memory.compositions[creepPrototype.type][multiplier]) {
@@ -129,6 +147,20 @@ var utilities = {
             result = structure.energy;
         }
 
+        return result;
+    },
+    getCapacity: function (structure) {
+        var result = 0;
+        if(structure.structureType == STRUCTURE_CONTAINER || structure.structureType == STRUCTURE_STORAGE){
+            result = structure.storeCapacity;
+            for(var resource_name in structure.store){
+                if(resource_name != "energy"){
+                    result -= structure.store[resource_name];
+                }
+            }
+        } else {
+            result = structure.energyCapacity;
+        }
         return result;
     }
 };

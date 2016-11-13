@@ -11,7 +11,7 @@ var harvester = {
         move: 2,
         carry: 1
     },
-    existenceCondition: function (roomName) {
+    canSpawn: function (roomName) {
         var freeSources = manager.findFreeSources();
         var closestSource;
         var shortestRoute;
@@ -45,6 +45,7 @@ var harvester = {
             manager.assignSource(creep);
             var resourse = Game.getObjectById(creep.memory.targetSource);
             if (resourse) {
+                creep.memory.timer = 0;
                 if (creep.room == resourse.room) {
                     var responseCode = creep.harvest(resourse);
                     if (responseCode == ERR_NOT_IN_RANGE) {
@@ -56,7 +57,8 @@ var harvester = {
                     }
                 }
             } else {
-                creep.memory.task = "recycle";
+                if(creep.memory.timer > 300) creep.memory.task = "recycle";
+                creep.memory.timer++;
             }
         } else {
             creep.memory.task = "deliver";

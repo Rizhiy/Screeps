@@ -7,7 +7,7 @@ var settings = require("settings");
 
 
 var manager = {
-    findFreeSources: function() {
+    findFreeSources: function () {
         var freeSources = [];
         for (var source in Memory.sources) {
             var source_object = Game.getObjectById(source);
@@ -105,7 +105,7 @@ var manager = {
             var target = creep.pos.findInRange(FIND_DROPPED_ENERGY, 50)[0];
             if (target) {
                 responseCode = creep.pickup(target);
-                if(responseCode == ERR_NOT_IN_RANGE){
+                if (responseCode == ERR_NOT_IN_RANGE) {
                     creep.moveTo(target);
                 }
             }
@@ -128,7 +128,7 @@ var manager = {
     },
     checkConstruction: function (roomName) {
         var target = Game.rooms[roomName].find(FIND_MY_CONSTRUCTION_SITES);
-        if (target.length > utilities.countCreeps().builder * 3) {
+        if (target.length > utilities.countCreeps().builder * 3 && target.length > 3) {
             return true;
         } else {
             return false;
@@ -198,13 +198,15 @@ var manager = {
         if (!spawn) {
             spawn = Game.spawns.Main;
         }
+        if (spawn.room.energyAvailable < spawn.room.energyCapacity / 2)
+            return;
         var responseCode = spawn.renewCreep(creep);
         if (responseCode == ERR_NOT_IN_RANGE) {
             creep.moveTo(spawn);
         }
     },
     recycleCreep: function (creep) {
-        if(creep.memory.age < 100) return;
+        if (creep.memory.age < 100) return;
         if (Game.time % 10) creep.memory.task = null;
         var spawn = Game.spawns[creep.room.name];
         if (!spawn) {

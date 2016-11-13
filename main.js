@@ -12,7 +12,6 @@ var utilities = require("utilities");
 
 module.exports.loop = function () {
     var counter = 0;
-    spawnMain.CreateCreeps();
     var towers = Game.spawns.Main.room.find(FIND_MY_STRUCTURES,
         {filter: {structureType: STRUCTURE_TOWER}});
     for (var tower in towers) {
@@ -43,4 +42,6 @@ module.exports.loop = function () {
             creeps[creep.memory.role].run(creep);
         }
     }
+
+    spawnMain.CreateCreeps();
 };

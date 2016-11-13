@@ -3,8 +3,8 @@
  */
 var settings = {
     wallHealth: 10000,
-    creepTypes: ["harvester","builder","logistics","upgrader"]
-
+    creepTypes: ["harvester","builder","logistics","upgrader"],
+    towerEnergy: 0.8
 };
 
 module.exports = settings;

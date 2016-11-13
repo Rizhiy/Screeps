@@ -12,9 +12,19 @@ var builder = {
         move: 4,
         carry: 2
     },
-    existenceCondition: function (roomName) {
+    canSpawn: function (roomName) {
         return utilities.calculateStoredEnergy(roomName) >= 2000 && manager.checkConstruction(roomName) &&
-            utilities.countCreeps().harvester != 0 && utilities.countCreeps().logistics != 0;
+            utilities.countCreeps().harvester != 0 && utilities.countCreeps().logistics != 0 ||
+            (utilities.countCreeps().builder == 0 && Game.rooms[roomName].find(FIND_MY_CONSTRUCTION_SITES).length != 0);
+    },
+    shouldRecycle: function (creep) {
+        var roomName = creep.room.name;
+        if (creep.memory.timer < 30) return false;
+        else creep.memory.timer++;
+        if (Game.rooms[roomName].find(FIND_MY_CONSTRUCTION_SITES).length < utilities.countCreeps().builder * 4 &&
+            utilities.countCreeps().builder > 1)
+            return true;
+        else creep.memory.counter = 0;
     },
     build: function (creep) {
         var target = creep.pos.findClosestByPath(FIND_MY_CONSTRUCTION_SITES);
@@ -34,7 +44,7 @@ var builder = {
                 if (object.structureType == STRUCTURE_WALL || object.structureType == STRUCTURE_RAMPART) {
                     return object.hits < settings.wallHealth;
                 }
-                return object.hits < object.hitsMax * 4 / 5;
+                return object.hits < object.hitsMax * 3 / 5;
             }
         });
         if (target) {
@@ -50,10 +60,8 @@ var builder = {
         manager.recycleCreep(creep);
     },
     run: function (creep) {
-        if (!this.existenceCondition(creep.room.name)) {
+        if (this.shouldRecycle(creep)) {
             creep.memory.task = "recycle";
-        } else {
-            creep.memory.task = creep.memory.task != "recycle" ? creep.memory.task : null;
         }
         if (creep.carry.energy == 0) {
             manager.getEnergy(creep);

@@ -13,10 +13,23 @@ var upgrader = {
         move: 2,
         carry: 1
     },
-    existenceCondition: function (roomName) {
+    canSpawn: function (roomName) {
+        if (utilities.countCreepsInRoom(roomName) == 0) return true;
         return !manager.checkConstruction(roomName) &&
             utilities.calculateStoredEnergy(Game.spawns.Main.room.name) / utilities.countCreeps().upgrader > 1000 &&
             utilities.countCreeps().harvester != 0 && utilities.countCreeps().logistics != 0;
+    },
+    shouldRecycle: function (creep) {
+        if (creep.memory.timer < 50) return false;
+        else creep.memory.timer++;
+        var roomName = creep.room.name;
+        if (utilities.countCreepsInRoom(roomName) == 1) return false;
+        if (manager.checkConstruction(roomName) ||
+            utilities.calculateStoredEnergy(Game.spawns.Main.room.name) / utilities.countCreeps().upgrader < 500){
+            return true;
+        } else {
+            creeep.memory.timer = 0;
+        }
     },
     upgrade: function (creep) {
         var responseCode = creep.upgradeController(creep.room.controller);
@@ -32,10 +45,8 @@ var upgrader = {
         manager.recycleCreep(creep);
     },
     run: function (creep) {
-        if (!this.existenceCondition(creep.room.name)) {
+        if (this.shouldRecycle(creep)) {
             creep.memory.task = "recycle";
-        } else {
-            creep.memory.task = creep.memory.task != "recycle" ? creep.memory.task : null;
         }
         if (!creep.memory.task) {
             creep.memory.task = "upgrade";

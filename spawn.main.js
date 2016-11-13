@@ -47,11 +47,14 @@ function createCreep() {
         if (lastCreepGenerated != creepType) {
             var creepDefinition = require("creep." + creepType);
             composition = utilities.calculateComposition(spawnEnergy, creepDefinition);
-            if (creepDefinition.existenceCondition(Game.spawns.Main.room.name)) {
+            if (creepDefinition.canSpawn(Game.spawns.Main.room.name)) {
                 responseCode = Game.spawns.Main.createCreep(composition.composition, spawn.generateNewCreepName(), {
                     role: creepDefinition.type,
                     level: composition.level,
-                    age: 0
+                    age: 0,
+                    timer: 0,
+                    task: null,
+                    subtask: null
                 });
             }
             if (!responseCode) lastCreepGenerated = creepDefinition.type;
@@ -59,7 +62,7 @@ function createCreep() {
     }
 
     //bootstrap in case of failure
-    if (responseCode == -6 && creepCount.harvester < Game.spawns.Main.room.find(FIND_SOURCES).length) {
+    if (responseCode == -6 && creepCount.harvester < Game.spawns.Main.room.find(FIND_SOURCES).length && creepCount.harvester < creepCount.logistics || creepCount.harvester == 0) {
         composition = utilities.calculateComposition(Game.spawns.Main.room.energyAvailable, harvester);
         Game.spawns.Main.createCreep(composition.composition, spawn.generateNewCreepName(), {
             role: harvester.type,
@@ -68,7 +71,7 @@ function createCreep() {
         if (!responseCode) lastCreepGenerated = builder.type;
     }
 
-    if (responseCode == -6 && creepCount.logistics < Game.spawns.Main.room.find(FIND_SOURCES).length) {
+    if (responseCode == -6 && creepCount.logistics < Game.spawns.Main.room.find(FIND_SOURCES).length && creepCount.logistics < creepCount.harvester || creepCount.logistics == 0) {
         composition = utilities.calculateComposition(Game.spawns.Main.room.energyAvailable, logistics);
         Game.spawns.Main.createCreep(composition.composition, spawn.generateNewCreepName(), {
             role: logistics.type,
