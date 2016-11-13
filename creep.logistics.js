@@ -4,65 +4,129 @@
 var manager = require('manager');
 var utilities = require('utilities');
 var logistics = {
-    composition: [MOVE, MOVE, MOVE, MOVE, MOVE, CARRY, CARRY, CARRY, CARRY, CARRY],
+    type: "logistics",
+    compositionRatio: {
+        move: 5,
+        carry: 5
+    },
+    existenceCondition: function () {
+        var sink = logistics.calculateSmallestSink(Game.spawns.Main.room.name);
+        var minValue = sink.minValue;
+        var origin = logistics.calculateLargestSource(Game.spawns.Main.room.name);
+        var maxValue = origin.maxValue;
+        var maxTarget = origin.maxTarget;
+        return maxValue - minValue > 1000 && maxTarget.structureType != STRUCTURE_STORAGE  || utilities.countCreeps().logistics == 0;
+    },
     balance: function (creep) {
-        var targets = creep.room.find(FIND_STRUCTURES, {
+
+        var sink = this.calculateSmallestSink(creep);
+        var minTarget = sink.minTarget;
+        var minValue = sink.minValue;
+        var source = this.calculateLargestSource(creep);
+        var maxTarget = source.maxTarget;
+        var maxValue = source.maxValue;
+
+        if (maxTarget != minTarget && (maxValue - minValue) / 2 > creep.carryCapacity) {
+            creep.memory.task = "pickup";
+            creep.memory.origin = maxTarget;
+            creep.memory.sink = minTarget;
+        } else {
+            if (utilities.countCreeps().logistics > 2) creep.memory.task = "recycle";
+        }
+    },
+    calculateLargestSource: function (roomName) {
+        var sources = Game.rooms[roomName].find(FIND_STRUCTURES, {
             filter: function (structure) {
-                return structure.structureType == STRUCTURE_CONTAINER || structure.structureType == STRUCTURE_STORAGE;
+                return structure.structureType == STRUCTURE_CONTAINER ||
+                    structure.structureType == STRUCTURE_STORAGE;
             }
         });
-        if (targets) {
-            var maxTarget = targets[0];
-            var maxValue = 0;
-            var minTarget = targets[0];
-            var minValue = 10000000;
-            for (var target_index in targets) {
-                var target = targets[target_index];
-                var fullness;
-                if (target.structureType == STRUCTURE_CONTAINER || target.structureType == STRUCTURE_STORAGE) {
-                    fullness = target.store.energy;
-                } else {
-                    fullness = target.energy;
-                }
-
-                if (fullness > maxValue && maxTarget.structureType == STRUCTURE_CONTAINER) {
-                    maxValue = fullness;
-                    maxTarget = target;
-                }
-                if (fullness < minValue) {
-                    minValue = fullness;
-                    minTarget = target;
+        var maxTarget = sources[0];
+        var maxValue = 0;
+        for (var sourceName in sources) {
+            var source = sources[sourceName];
+            var energy = utilities.getInternalEnergy(source);
+            if (energy > maxValue) {
+                maxValue = energy;
+                maxTarget = source;
+            }
+        }
+        return {maxTarget: maxTarget, maxValue: maxValue};
+    },
+    calculateClosestSource: function (creep) {
+        return creep.pos.findClosestByPath(FIND_STRUCTURES, {
+            filter: function (structure) {
+                return (structure.structureType == STRUCTURE_CONTAINER ||
+                    structure.structureType == STRUCTURE_STORAGE) && structure.store.energy > 0;
+            }
+        });
+    },
+    calculateSmallestSink: function (roomName) {
+        var sinks = Game.rooms[roomName].find(FIND_STRUCTURES, {
+            filter: function (structure) {
+                return structure.structureType == STRUCTURE_CONTAINER ||
+                    structure.structureType == STRUCTURE_STORAGE ||
+                    structure.structureType == STRUCTURE_TOWER ||
+                    structure.structureType == STRUCTURE_EXTENSION ||
+                    structure.structureType == STRUCTURE_SPAWN;
+            }
+        });
+        var minTarget = sinks[0];
+        var minValue = 10000000;
+        for (var sinkName in sinks) {
+            var sink = sinks[sinkName];
+            var energy = utilities.getInternalEnergy(sink);
+            if (energy < minValue) {
+                minValue = energy;
+                minTarget = sink;
+            }
+        }
+        return {minTarget: minTarget, minValue: minValue};
+    },
+    calculateClosestSink: function (creep) {
+        return sink = creep.pos.findClosestByPath(FIND_STRUCTURES, {
+                filter: function (structure) {
+                    return ((structure.structureType == STRUCTURE_TOWER && structure.energy < structure.energyCapacity / 2) ||
+                    (structure.structureType == STRUCTURE_EXTENSION || structure.structureType == STRUCTURE_SPAWN) && structure.energy < structure.energyCapacity);
                 }
             }
-            if (maxTarget != minTarget && (maxValue - minValue)/2 > creep.carryCapacity) {
-                creep.memory.task = "pickup";
-                creep.memory.source = maxTarget;
-                creep.memory.sink = minTarget;
-            } else {
-                creep.memory.task = "wait";
-            }
+        );
+    },
+    supply: function (creep) {
+        var source = this.calculateClosestSource(creep);
+        var sink = this.calculateClosestSink(creep);
+        if (sink && source) {
+            creep.memory.task = "pickup";
+            creep.memory.origin = source;
+            creep.memory.sink = sink;
+        } else {
+            creep.memory.task = "collectDropped";
         }
     },
     pickup: function (creep) {
-        var responseCode;
-        var target = creep.pos.findInRange(FIND_DROPPED_ENERGY,5)[0];
-        if(target){
-            responseCode = creep.pickup(target);
+        var target;
+        if (creep.memory.origin) {
+            target = Game.getObjectById(creep.memory.origin.id);
         } else {
-            target = Game.getObjectById(creep.memory.source.id);
+            creep.memory.task = null;
+        }
+        var responseCode;
+        if (target) {
             responseCode = creep.withdraw(target, RESOURCE_ENERGY);
         }
+
         if (responseCode == ERR_NOT_IN_RANGE) {
-            utilities.moveTo(creep,target);
+            utilities.moveTo(creep, target);
         }
         if (responseCode == ERR_INVALID_TARGET) {
-            creep.memory.task = "balance";
+            creep.memory.task = null;
         }
         if (responseCode == ERR_FULL) {
             creep.memory.task = "deliver";
         }
         if (responseCode == ERR_NOT_ENOUGH_RESOURCES) {
-            creep.memory.task = "balance";
+            creep.memory.origin = this.calculateLargestSource(creep.room.name).maxTarget;
+            if (utilities.getInternalEnergy(creep.memory.origin) == 0) creep.memory.task = "deliver";
         }
 
         if (creep.carry.energy == creep.carryCapacity) {
@@ -70,76 +134,55 @@ var logistics = {
         }
     },
     deliver: function (creep) {
-        if (creep.carry.energy == 0) {
-            creep.memory.task = "balance";
-        }
-        if(!creep.memory.sink){
-            creep.memory.task = "balance";
+        if (!creep.memory.sink) {
+            creep.memory.sink = this.calculateSmallestSink(creep.room.name).minTarget;
+            return;
         }
         var target = Game.getObjectById(creep.memory.sink.id);
-        if(!target){
+        if (!target) {
             creep.memory.sink = null;
-            creep.memory.task = "balance";
-        }
-        if (checkFull(target)) {
-            creep.memory.task = "balance";
+            creep.memory.task = null;
         }
         var responseCode = creep.transfer(target, RESOURCE_ENERGY);
         if (responseCode == ERR_NOT_IN_RANGE) {
             creep.moveTo(target);
         }
         if (responseCode == ERR_INVALID_TARGET) {
-            creep.memory.task = "balance";
+            creep.memory.sink = this.calculateClosestSink(creep);
         }
         if (responseCode == ERR_FULL) {
-            creep.memory.task = "balance";
+            creep.memory.sink = this.calculateClosestSink(creep);
+        }
+        if (responseCode == ERR_NOT_ENOUGH_RESOURCES) {
+            creep.memory.task = null;
         }
     },
-    wait: function(creep){
-        if(Game.time % 2 == 0){
-            if(creep.memory.timer < 0){
-                creep.memory.timer = 10;
-            }
-            if(creep.memory.timer > 0){
-                creep.memory.timer -=2;
-            } else {
-                creep.memory.timer = -1;
-                creep.memory.task = "balance";
-            }
+    recycle: function (creep) {
+        manager.recycleCreep(creep);
+    },
+    collectDropped: function (creep) {
+        if (creep.carry.energy == creep.carryCapacity) {
+            creep.memory.sink = this.calculateClosestSink(creep);
+            creep.memory.task = "deliver";
         }
-
-
+        var responseCode;
+        var target = creep.pos.findInRange(FIND_DROPPED_ENERGY, 50)[0];
+        if (target) {
+            responseCode = creep.pickup(target);
+            if (responseCode == ERR_NOT_IN_RANGE) {
+                creep.moveTo(target);
+            }
+        } else {
+            creep.memory.task = "supply";
+        }
     },
     run: function (creep) {
         if (!creep.memory.task) {
-            creep.memory.task = "balance";
-        }
-        if (creep.memory.task == "balance") {
-            this.balance(creep);
-        }
-        if (creep.memory.task == "pickup") {
-            this.pickup(creep);
-        }
-        if (creep.memory.task == "deliver") {
-            this.deliver(creep);
-        }
-        if(creep.memory.task == "wait"){
-            this.wait(creep);
+            creep.memory.task = "collectDropped";
+        } else {
+            this[creep.memory.task](creep);
         }
     }
 };
-
-function checkFull(structure) {
-    if (structure.structureType == STRUCTURE_CONTAINER) {
-        if (structure.store.energy == structure.storeCapacity) {
-            return true;
-        }
-    } else {
-        if (structure.energy == structure.energyCapacity) {
-            return true;
-        }
-    }
-    return false;
-}
 
 module.exports = logistics;

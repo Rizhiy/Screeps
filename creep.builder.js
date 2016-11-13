@@ -3,9 +3,19 @@
  */
 var manager = require('manager');
 var settings = require('settings');
+var utilities = require("utilities");
 
 var builder = {
-    composition: [WORK, WORK, MOVE, MOVE, MOVE, MOVE, CARRY, CARRY],
+    type: "builder",
+    compositionRatio: {
+        work: 2,
+        move: 4,
+        carry: 2
+    },
+    existenceCondition: function (roomName) {
+        return utilities.calculateStoredEnergy(roomName) >= 2000 && manager.checkConstruction(roomName) &&
+            utilities.countCreeps().harvester != 0 && utilities.countCreeps().logistics != 0;
+    },
     build: function (creep) {
         var target = creep.pos.findClosestByPath(FIND_MY_CONSTRUCTION_SITES);
         if (target) {
@@ -14,7 +24,7 @@ var builder = {
                 creep.moveTo(target);
             }
         } else {
-            creep.memory.task = "repair";
+            creep.memory.task = "recycle";
         }
 
     },
@@ -36,21 +46,24 @@ var builder = {
             creep.memory.task = "build";
         }
     },
+    recycle: function (creep) {
+        manager.recycleCreep(creep);
+    },
     run: function (creep) {
+        if (!this.existenceCondition(creep.room.name)) {
+            creep.memory.task = "recycle";
+        } else {
+            creep.memory.task = creep.memory.task != "recycle" ? creep.memory.task : null;
+        }
         if (creep.carry.energy == 0) {
             manager.getEnergy(creep);
+            return;
         }
-
         if (!creep.memory.task) {
             creep.memory.task = "repair";
+        } else {
+            this[creep.memory.task](creep);
         }
-        if (creep.memory.task == "repair") {
-            this.repair(creep);
-        }
-        if (creep.memory.task == "build") {
-            this.build(creep);
-        }
-
     }
 };
 
