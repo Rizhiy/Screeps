@@ -198,8 +198,10 @@ var manager = {
         if (!spawn) {
             spawn = Game.spawns.Main;
         }
-        if (spawn.room.energyAvailable < spawn.room.energyCapacity / 2)
+        if (spawn.room.energyAvailable < spawn.room.energyCapacity / 2) {
+            creep.memory.renewing = false;
             return;
+        }
         var responseCode = spawn.renewCreep(creep);
         if (responseCode == ERR_NOT_IN_RANGE) {
             creep.moveTo(spawn);
