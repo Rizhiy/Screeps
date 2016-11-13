@@ -198,7 +198,7 @@ var manager = {
         if (!spawn) {
             spawn = Game.spawns.Main;
         }
-        if (spawn.room.energyAvailable < spawn.room.energyCapacity / 2) {
+        if (spawn.room.energyAvailable < spawn.room.energyCapacityAvailable / 2) {
             creep.memory.renewing = false;
             return;
         }

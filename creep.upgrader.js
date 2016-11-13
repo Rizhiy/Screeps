@@ -35,7 +35,7 @@ var upgrader = {
     upgrade: function (creep) {
         var responseCode = creep.upgradeController(creep.room.controller);
         if (responseCode == ERR_NOT_IN_RANGE) {
-            creep.moveTo(creep.room.controller);
+            this.move(creep,creep.room.controller);
         }
         if (responseCode == ERR_NOT_ENOUGH_RESOURCES) {
             creep.memory.task = manager.getEnergy(creep);
@@ -60,6 +60,9 @@ var upgrader = {
             this[creep.memory.task](creep);
         }
 
+    },
+    move: function (creep,target) {
+        creep.moveTo(target, {reusePath:1});
     }
 };
 

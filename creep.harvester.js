@@ -49,7 +49,7 @@ var harvester = {
                 if (creep.room == resourse.room) {
                     var responseCode = creep.harvest(resourse);
                     if (responseCode == ERR_NOT_IN_RANGE) {
-                        creep.moveTo(resourse);
+                        this.move(creep,resourse);
                     }
                     if (responseCode == ERR_NOT_ENOUGH_RESOURCES) {
                         creep.memory.target = null;
@@ -70,7 +70,7 @@ var harvester = {
         target = Game.getObjectById(creep.memory.target.id);
         var responseCode = creep.transfer(target, RESOURCE_ENERGY);
         if (responseCode == ERR_NOT_IN_RANGE) {
-            creep.moveTo(target);
+            this.move(creep,target);
         }
         if (responseCode == ERR_INVALID_TARGET) {
             manager.assignTarget(creep);
@@ -102,7 +102,9 @@ var harvester = {
         if (creep.memory.task) {
             this[creep.memory.task](creep);
         }
-
+    },
+    move: function (creep,target) {
+        creep.moveTo(target,{reusePath:1});
     }
 };
 

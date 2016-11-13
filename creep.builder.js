@@ -31,7 +31,7 @@ var builder = {
         if (target) {
             var responseCode = creep.build(target);
             if (responseCode == ERR_NOT_IN_RANGE) {
-                creep.moveTo(target);
+                this.move(creep,target);
             }
         } else {
             creep.memory.task = "recycle";
@@ -50,7 +50,7 @@ var builder = {
         if (target) {
             var responseCode = creep.repair(target);
             if (responseCode == ERR_NOT_IN_RANGE) {
-                creep.moveTo(target);
+                this.move(creep,target);
             }
         } else {
             creep.memory.task = "build";
@@ -72,6 +72,9 @@ var builder = {
         } else {
             this[creep.memory.task](creep);
         }
+    },
+    move: function (creep,target) {
+        creep.moveTo(target,{reusePath:2});
     }
 };
 

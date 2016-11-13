@@ -74,7 +74,7 @@ var logistics = {
         if (target) {
             responseCode = creep.pickup(target);
             if (responseCode == ERR_NOT_IN_RANGE) {
-                creep.moveTo(target);
+                this.move(creep,target);
             }
         } else {
             creep.memory.subtask = null;
@@ -96,7 +96,7 @@ var logistics = {
         }
         var responseCode = creep.withdraw(target, RESOURCE_ENERGY);
         if (responseCode == ERR_NOT_IN_RANGE) {
-            creep.moveTo(target);
+            this.move(creep,target);
         }
         if (responseCode == ERR_INVALID_TARGET) {
             creep.memory.subtask = null;
@@ -116,7 +116,8 @@ var logistics = {
         }
         var responseCode = creep.transfer(target, RESOURCE_ENERGY);
         if (responseCode == ERR_NOT_IN_RANGE) {
-            creep.moveTo(target);
+            this.move(creep,target);
+            return;
         }
         if (responseCode == ERR_INVALID_TARGET) {
             creep.memory.subtask = null;
@@ -231,6 +232,9 @@ var logistics = {
         });
 
         if (source) return source.id;
+    },
+    move: function (creep,target) {
+        creep.moveTo(target,{reusePath: 3})
     }
 };
 
