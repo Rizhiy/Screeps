@@ -17,7 +17,7 @@ var upgrader = {
         if (utilities.countCreepsInRoom(roomName) == 0) return true;
         return !manager.checkConstruction(roomName) &&
             utilities.calculateStoredEnergy(Game.spawns.Main.room.name) / utilities.countCreeps().upgrader > 1000 &&
-            utilities.countCreeps().harvester != 0 && utilities.countCreeps().logistics != 0;
+            utilities.countCreeps().harvester != 0 && utilities.countCreeps().upgrader < utilities.countCreeps().logistics;
     },
     shouldRecycle: function (creep) {
         if (creep.memory.timer < 50) return false;

@@ -14,7 +14,7 @@ var logistics = {
         var sink = Game.getObjectById(this.calculateSmallestSink(roomName));
         var source = Game.getObjectById(this.calculateLargestSource(roomName));
         return utilities.getInternalEnergy(source) - utilities.getInternalEnergy(sink) > 500 &&
-            source.structureType != STRUCTURE_STORAGE ||
+            (source.structureType != STRUCTURE_STORAGE || utilities.getInternalEnergy(sink) < utilities.getCapacity(sink) * 0.8) ||
             utilities.countCreeps().logistics == 0;
     },
     shouldRecycle: function (creep) {
@@ -86,11 +86,11 @@ var logistics = {
     },
     pickup: function (creep) {
         var target = Game.getObjectById(creep.memory.source);
-        if(!target){
+        if (!target) {
             creep.memory.subtask = null;
             return;
         }
-        var responseCode = creep.withdraw(target,RESOURCE_ENERGY);
+        var responseCode = creep.withdraw(target, RESOURCE_ENERGY);
         if (responseCode == ERR_NOT_IN_RANGE) {
             creep.moveTo(target);
         }
@@ -106,11 +106,11 @@ var logistics = {
     },
     deliver: function (creep) {
         var target = Game.getObjectById(creep.memory.sink);
-        if(!target){
+        if (!target) {
             creep.memory.subtask = null;
             return;
         }
-        var responseCode = creep.transfer(target,RESOURCE_ENERGY);
+        var responseCode = creep.transfer(target, RESOURCE_ENERGY);
         if (responseCode == ERR_NOT_IN_RANGE) {
             creep.moveTo(target);
         }
@@ -185,18 +185,27 @@ var logistics = {
         }
     },
     calculateClosestSink: function (creep) {
-        var sink = creep.pos.findClosestByPath(FIND_STRUCTURES, {
-            filter: function (structure) {
-                return (structure.structureType == STRUCTURE_EXTENSION || structure.structureType == STRUCTURE_SPAWN) &&
-                    utilities.getInternalEnergy(structure) < utilities.getCapacity(structure);
+        var sink;
+        if (utilities.countCreeps().logistics < 2) {
+            sink = creep.pos.findClosestByPath(FIND_STRUCTURES, {
+                filter: function (structure) {
+                    return (structure.structureType == STRUCTURE_EXTENSION || structure.structureType == STRUCTURE_SPAWN) &&
+                        utilities.getInternalEnergy(structure) < utilities.getCapacity(structure);
+                }
+            });
+            if (!sink) {
+                sink = creep.pos.findClosestByPath(FIND_STRUCTURES, {
+                    filter: function (structure) {
+                        return structure.structureType == STRUCTURE_TOWER && structure.energy < structure.energyCapacity * settings.towerEnergy;
+                    }
+                });
             }
-        });
-        if (sink) {
-            return sink.id;
         } else {
             sink = creep.pos.findClosestByPath(FIND_STRUCTURES, {
                 filter: function (structure) {
-                    return structure.structureType == STRUCTURE_TOWER && structure.energy < structure.energyCapacity * settings.towerEnergy;
+                    return ((structure.structureType == STRUCTURE_EXTENSION || structure.structureType == STRUCTURE_SPAWN) &&
+                        utilities.getInternalEnergy(structure) < utilities.getCapacity(structure)) ||
+                        (structure.structureType == STRUCTURE_TOWER && structure.energy < structure.energyCapacity * settings.towerEnergy);
                 }
             });
         }
