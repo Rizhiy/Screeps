@@ -21,7 +21,7 @@ var builder = {
         var roomName = creep.room.name;
         if (creep.memory.timer < 30) return false;
         else creep.memory.timer++;
-        if (Game.rooms[roomName].find(FIND_MY_CONSTRUCTION_SITES).length < utilities.countCreeps().builder * 4 &&
+        if (Game.rooms[roomName].find(FIND_MY_CONSTRUCTION_SITES).length < utilities.countCreeps().builder * 2 &&
             utilities.countCreeps().builder > 1)
             return true;
         else creep.memory.counter = 0;

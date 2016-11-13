@@ -22,7 +22,7 @@ var logistics = {
         var sink = Game.getObjectById(this.calculateSmallestSink(roomName));
         var source = Game.getObjectById(this.calculateLargestSource(roomName));
         return utilities.getInternalEnergy(source) - utilities.getInternalEnergy(sink) < 100 &&
-            utilities.countCreeps().logistics > 1;
+            utilities.countCreeps().logistics > 2;
     },
     balance: function (creep) {
         var sink = Game.getObjectById(this.calculateSmallestSink(creep.room.name));
@@ -62,7 +62,7 @@ var logistics = {
     collectDropped: function (creep) {
         if (creep.carry.energy == creep.carryCapacity) {
             var sink = this.calculateClosestSink(creep);
-            if(!sink){
+            if (!sink) {
                 sink = this.calculateSmallestSink(creep.room.name);
             }
             creep.memory.sink = sink;
@@ -177,7 +177,7 @@ var logistics = {
         if (sources) {
             var maxTarget = sources[0];
             //ATTENTION: this check is here on purpose as there was a bug in their code at some point
-            if(maxTarget) {
+            if (maxTarget) {
                 var maxValue = utilities.getInternalEnergy(sources[0]);
                 for (var sourceName in sources) {
                     var source = sources[sourceName];
@@ -203,7 +203,8 @@ var logistics = {
             if (!sink) {
                 sink = creep.pos.findClosestByPath(FIND_STRUCTURES, {
                     filter: function (structure) {
-                        return structure.structureType == STRUCTURE_TOWER && structure.energy < structure.energyCapacity * settings.towerEnergy;
+                        return (structure.structureType == STRUCTURE_TOWER && structure.energy < structure.energyCapacity * settings.towerEnergy) ||
+                            (structure.structureType == STRUCTURE_LINK && utilities.getInternalEnergy(structure) < utilities.getCapacity(structure));
                     }
                 });
             }
@@ -212,7 +213,8 @@ var logistics = {
                 filter: function (structure) {
                     return ((structure.structureType == STRUCTURE_EXTENSION || structure.structureType == STRUCTURE_SPAWN) &&
                         utilities.getInternalEnergy(structure) < utilities.getCapacity(structure)) ||
-                        (structure.structureType == STRUCTURE_TOWER && structure.energy < structure.energyCapacity * settings.towerEnergy);
+                        (structure.structureType == STRUCTURE_TOWER && structure.energy < structure.energyCapacity * settings.towerEnergy) ||
+                        (structure.structureType == STRUCTURE_LINK && utilities.getInternalEnergy(structure) < utilities.getCapacity(structure));
                 }
             });
         }

@@ -209,7 +209,7 @@ var manager = {
     },
     recycleCreep: function (creep) {
         if (creep.memory.age < 100) return;
-        if (Game.time % 10) creep.memory.task = null;
+        if ((Game.time + creep.name) % 2 == 0) creep.memory.task = null;
         var spawn = Game.spawns[creep.room.name];
         if (!spawn) {
             spawn = Game.spawns.Main;

@@ -16,18 +16,17 @@ var upgrader = {
     canSpawn: function (roomName) {
         if (utilities.countCreepsInRoom(roomName) == 0) return true;
         return !manager.checkConstruction(roomName) &&
-            utilities.calculateStoredEnergy(roomName) / utilities.countCreeps().upgrader > 1000 &&
+            utilities.calculateStoredEnergy(roomName) / utilities.countCreeps().upgrader > 2000 &&
             utilities.countCreeps().harvester != 0 && utilities.countCreeps().upgrader < utilities.countCreeps().logistics / 3;
     },
     shouldRecycle: function (creep) {
-        if (creep.memory.timer < 50){
+        if (creep.memory.timer < 50) {
             creep.memory.timer++;
             return false;
         }
         var roomName = creep.room.name;
         if (utilities.countCreepsInRoom(roomName) == 1) return false;
-        if (manager.checkConstruction(roomName) ||
-            utilities.calculateStoredEnergy(creep.room.name) / utilities.countCreeps().upgrader < 500){
+        if (utilities.calculateStoredEnergy(creep.room.name) / utilities.countCreeps().upgrader < 300) {
             return true;
         } else {
             creep.memory.timer = 0;
