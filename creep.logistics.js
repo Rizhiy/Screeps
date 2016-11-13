@@ -61,7 +61,11 @@ var logistics = {
     },
     collectDropped: function (creep) {
         if (creep.carry.energy == creep.carryCapacity) {
-            creep.memory.sink = this.calculateClosestSink(creep);
+            var sink = this.calculateClosestSink(creep);
+            if(!sink){
+                sink = this.calculateSmallestSink(creep.room.name);
+            }
+            creep.memory.sink = sink;
             creep.memory.subtask = "deliver";
             return;
         }
@@ -172,16 +176,19 @@ var logistics = {
         });
         if (sources) {
             var maxTarget = sources[0];
-            var maxValue = utilities.getInternalEnergy(sources[0]);
-            for (var sourceName in sources) {
-                var source = sources[sourceName];
-                var energy = utilities.getInternalEnergy(source);
-                if (energy > maxValue) {
-                    maxValue = energy;
-                    maxTarget = source;
+            //ATTENTION: this check is here on purpose as there was a bug in their code at some point
+            if(maxTarget) {
+                var maxValue = utilities.getInternalEnergy(sources[0]);
+                for (var sourceName in sources) {
+                    var source = sources[sourceName];
+                    var energy = utilities.getInternalEnergy(source);
+                    if (energy > maxValue) {
+                        maxValue = energy;
+                        maxTarget = source;
+                    }
                 }
+                return maxTarget.id;
             }
-            return maxTarget.id;
         }
     },
     calculateClosestSink: function (creep) {

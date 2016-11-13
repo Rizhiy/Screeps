@@ -141,6 +141,7 @@ var utilities = {
     },
     getInternalEnergy: function (structure) {
         var result = 0;
+        if(!structure) return;
         if (structure.structureType == STRUCTURE_CONTAINER || structure.structureType == STRUCTURE_STORAGE) {
             result = structure.store.energy;
         } else {
