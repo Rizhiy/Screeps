@@ -13,7 +13,9 @@ var upgrader = {
         move: 2,
         carry: 1
     },
+    multiplierLimit: 2,
     canSpawn: function (roomName) {
+        if(utilities.calculateStoredEnergy(roomName) == 0) return false;
         if (utilities.countCreepsInRoom(roomName) == 0) return true;
         return !manager.checkConstruction(roomName) &&
             utilities.calculateStoredEnergy(roomName) / utilities.countCreeps().upgrader > 2000 &&
@@ -63,6 +65,20 @@ var upgrader = {
     },
     move: function (creep,target) {
         creep.moveTo(target, {reusePath:1});
+    },
+    transfer: function (creep) {
+        var destinationRoom = creep.memory.destinationRoom;
+        if (!destinationRoom) {
+            creep.memory.task = null;
+            return;
+        }
+        if (creep.room.name != destinationRoom) {
+            creep.moveTo(creep.pos.findClosestByPath(creep.room.findExitTo(destinationRoom)), {reusePath: 10});
+        } else {
+            creep.memory.destinationRoom = null;
+            creep.memory.task = null;
+            this.run(creep);
+        }
     }
 };
 

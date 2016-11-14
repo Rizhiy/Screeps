@@ -9,15 +9,19 @@ var builder = {
     type: "builder",
     compositionRatio: {
         work: 2,
-        move: 4,
+        move: 2,
         carry: 2
     },
+    multiplierLimit: 4,
     canSpawn: function (roomName) {
-        return utilities.calculateStoredEnergy(roomName) >= 2000 && manager.checkConstruction(roomName) &&
+        // if (roomName == "W8N3" && manager.getAllConstructionSites().length > utilities.countCreeps().builder * 4) return true;
+        return utilities.calculateStoredEnergy(roomName) >= 2000 &&
+            (manager.checkConstruction(roomName) || manager.getAllConstructionSites().length > utilities.countCreeps().builder * 4) &&
             utilities.countCreeps().harvester != 0 && utilities.countCreeps().logistics != 0 ||
             (utilities.countCreeps().builder == 0 && Game.rooms[roomName].find(FIND_MY_CONSTRUCTION_SITES).length != 0);
     },
     shouldRecycle: function (creep) {
+        if (roomName == "W8N3" && manager.getAllConstructionSites().length > utilities.countCreeps().builder * 4) return false;
         var roomName = creep.room.name;
         if (creep.memory.timer < 30) return false;
         else creep.memory.timer++;
@@ -31,10 +35,14 @@ var builder = {
         if (target) {
             var responseCode = creep.build(target);
             if (responseCode == ERR_NOT_IN_RANGE) {
-                this.move(creep,target);
+                this.move(creep, target);
             }
         } else {
-            creep.memory.task = "recycle";
+            var constructionSite = manager.getAllConstructionSites()[0];
+            if (constructionSite.room.name != creep.room.name) {
+                creep.memory.destinationRoom = constructionSite.room.name;
+                creep.memory.subtask = "transfer";
+            }
         }
 
     },
@@ -50,7 +58,7 @@ var builder = {
         if (target) {
             var responseCode = creep.repair(target);
             if (responseCode == ERR_NOT_IN_RANGE) {
-                this.move(creep,target);
+                this.move(creep, target);
             }
         } else {
             creep.memory.task = "build";
@@ -60,21 +68,39 @@ var builder = {
         manager.recycleCreep(creep);
     },
     run: function (creep) {
-        if (this.shouldRecycle(creep)) {
+        if (this.shouldRecycle(creep) && !creep.memory.destinationRoom) {
             creep.memory.task = "recycle";
         }
-        if (creep.carry.energy == 0) {
+        if (creep.carry.energy == 0 && creep.memory.task != "transfer") {
             manager.getEnergy(creep);
             return;
         }
-        if (!creep.memory.task) {
+        if (!creep.memory.task && !creep.memory.subtask) {
             creep.memory.task = "repair";
+        }
+
+        if (creep.memory.subtask) {
+            this[creep.memory.subtask](creep);
         } else {
             this[creep.memory.task](creep);
         }
     },
-    move: function (creep,target) {
-        creep.moveTo(target,{reusePath:2});
+    move: function (creep, target) {
+        creep.moveTo(target, {reusePath: 2});
+    },
+    transfer: function (creep) {
+        var destinationRoom = creep.memory.destinationRoom;
+        if (!destinationRoom) {
+            creep.memory.subtask = null;
+            return;
+        }
+        if (creep.room.name != destinationRoom) {
+            creep.moveTo(creep.pos.findClosestByPath(creep.room.findExitTo(destinationRoom)), {reusePath: 10});
+        } else {
+            creep.memory.destinationRoom = null;
+            creep.memory.subtask = null;
+            this.run(creep);
+        }
     }
 };
 

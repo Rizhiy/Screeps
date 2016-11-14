@@ -11,29 +11,11 @@ var manager = {
         var freeSources = [];
         for (var source in Memory.sources) {
             var source_object = Game.getObjectById(source);
-            if (manager.sourceAvailable(source_object.id) && source_object.energy > 0) {
+            if (source_object && manager.sourceAvailable(source_object.id) && source_object.energy > 0) {
                 freeSources.push(source_object.id);
             }
         }
         return freeSources;
-    },
-    addSources: function (room) {
-        if (!Memory.sources) {
-            Memory.sources = {};
-        }
-        var sources = room.find(FIND_SOURCES);
-        for (var source in sources) {
-            var source_object = sources[source];
-            Memory.sources[source_object.id].WP = 0;
-            Memory.sources[source_object.id].lastEmptyTime = Game.time - 300;
-            for (var i = -1; i < 2; i++) {
-                for (var j = -1; j < 2; j++) {
-                    if (Game.map.getTerrainAt(source_object.pos.x + i, source_object.pos.y + j, source_object.room.name) != "wall") {
-                        Memory.sources[source_object.id].WP++;
-                    }
-                }
-            }
-        }
     },
     assignSource: function (creep) {
         creep.memory.targetSource = null;
@@ -68,7 +50,7 @@ var manager = {
         creep.memory.target = null;
         target = creep.pos.findClosestByPath(FIND_STRUCTURES, {
             filter: function (structure) {
-                return ((structure.structureType == STRUCTURE_LINK || structure.structureType == STRUCTURE_TOWER) && structure.energy < structure.energyCapacity) ||
+                return ((structure.structureType == STRUCTURE_SPAWN) && structure.energy < structure.energyCapacity) ||
                     ((structure.structureType == STRUCTURE_CONTAINER ||
                     structure.structureType == STRUCTURE_STORAGE) &&
                     structure.store.energy < structure.storeCapacity);
@@ -76,6 +58,10 @@ var manager = {
         });
         if (target) {
             creep.memory.target = target;
+        } else {
+
+            creep.memory.subtask = "transfer";
+            creep.memory.destinationRoom = creep.memory.originalRoom;
         }
 
     }
@@ -90,7 +76,7 @@ var manager = {
         creep.memory.energySource = target;
     },
     getEnergy: function (creep) {
-        manager.findEnergySource(creep);
+        this.findEnergySource(creep);
         if (creep.memory.energySource) {
             var energySource = Game.getObjectById(creep.memory.energySource.id);
             var responseCode = creep.withdraw(energySource, RESOURCE_ENERGY);
@@ -101,14 +87,8 @@ var manager = {
                 creep.memory.energySource = null;
             }
         } else {
-            var responseCode;
-            var target = creep.pos.findInRange(FIND_DROPPED_ENERGY, 50)[0];
-            if (target) {
-                responseCode = creep.pickup(target);
-                if (responseCode == ERR_NOT_IN_RANGE) {
-                    creep.moveTo(target);
-                }
-            }
+            creep.memory.subtask = "transfer";
+            creep.memory.destinationRoom = "W8N3";
         }
     },
     checkBuildings: function (spawn) {
@@ -146,7 +126,6 @@ var manager = {
         return count;
     },
     sourceQueueFull: function (sourceId) {
-
         return !(this.getQueueLengthForSource(sourceId) < Memory.sources[sourceId].WP);
     },
     sourceAvailable: function (sourceId) {
@@ -218,9 +197,23 @@ var manager = {
         if (responseCode == ERR_NOT_IN_RANGE) {
             creep.moveTo(spawn);
         }
+    },
+    getAllConstructionSites: function () {
+        var constructionSites = [];
+        for (var roomName_index in Memory.usedRooms) {
+            var room = Game.rooms[Memory.usedRooms[roomName_index]];
+            if (room) {
+                var construction = room.find(FIND_MY_CONSTRUCTION_SITES);
+                for (var construction_index in construction) {
+                    var constructionSite = construction[construction_index];
+                    if (constructionSite) {
+                        constructionSites.push(constructionSite);
+                    }
+                }
+            }
+        }
+        return constructionSites;
     }
-
-
 };
 
 module.exports = manager;

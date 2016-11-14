@@ -11,6 +11,7 @@ var harvester = {
         move: 2,
         carry: 1
     },
+    multiplierLimit: 2,
     canSpawn: function (roomName) {
         var freeSources = manager.findFreeSources();
         var closestSource;
@@ -55,6 +56,9 @@ var harvester = {
                         creep.memory.target = null;
                         manager.assignSource(creep);
                     }
+                } else {
+                    creep.memory.destinationRoom = resourse.room;
+                    creep.memory.subtask = "transfer";
                 }
             } else {
                 if(creep.memory.timer > 300) creep.memory.task = "recycle";
@@ -66,6 +70,7 @@ var harvester = {
     },
     deliver: function (creep) {
         manager.assignTarget(creep);
+        if(!creep.memory.target) return;
         var target = creep.memory.target;
         target = Game.getObjectById(creep.memory.target.id);
         var responseCode = creep.transfer(target, RESOURCE_ENERGY);
@@ -98,13 +103,32 @@ var harvester = {
         if (creep.carry.energy == 0 && creep.memory.task != "harvest" || creep.memory.task == "getEnergy") {
             manager.getEnergy(creep);
         }
-
-        if (creep.memory.task) {
+        if (creep.memory.subtask) {
+            this[creep.memory.subtask](creep);
+        } else {
             this[creep.memory.task](creep);
         }
     },
     move: function (creep,target) {
+        if(creep.room.name != target.room.name){
+            creep.memory.subtask = "transfer";
+            creep.memory.destinationRoom = target.room.name;
+        }
         creep.moveTo(target,{reusePath:1});
+    },
+    transfer: function (creep) {
+        var destinationRoom = creep.memory.destinationRoom;
+        if (!destinationRoom) {
+            creep.memory.subtask = null;
+            return;
+        }
+        if (creep.room.name != destinationRoom) {
+            creep.moveTo(creep.pos.findClosestByPath(creep.room.findExitTo(destinationRoom)), {reusePath: 10});
+        } else {
+            creep.memory.destinationRoom = null;
+            creep.memory.subtask = null;
+            this.run(creep);
+        }
     }
 };
 

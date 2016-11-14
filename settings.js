@@ -3,8 +3,7 @@
  */
 var settings = {
     wallHealth: 10000,
-    creepTypes: ["harvester","builder","logistics","upgrader"],
-    solderTypes: ["capturer"],
+    creepTypes: ["harvester","builder","logistics","upgrader","capturer"],
     towerEnergy: 0.8
 };
 

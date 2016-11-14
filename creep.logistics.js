@@ -10,11 +10,13 @@ var logistics = {
         move: 2,
         carry: 2
     },
+    multiplierLimit: 2,
     canSpawn: function (roomName) {
         var sink = Game.getObjectById(this.calculateSmallestSink(roomName));
         var source = Game.getObjectById(this.calculateLargestSource(roomName));
         return utilities.getInternalEnergy(source) - utilities.getInternalEnergy(sink) > 1000 &&
-            (source.structureType != STRUCTURE_STORAGE || utilities.getInternalEnergy(sink) < utilities.getCapacity(sink) * 0.8) ||
+            (source.structureType != STRUCTURE_STORAGE || utilities.getInternalEnergy(sink) < utilities.getCapacity(sink) * 0.8) &&
+            utilities.countCreepsInRoom(roomName).harvester != 0 ||
             utilities.countCreeps().logistics == 0;
     },
     shouldRecycle: function (creep) {
@@ -22,7 +24,7 @@ var logistics = {
         var sink = Game.getObjectById(this.calculateSmallestSink(roomName));
         var source = Game.getObjectById(this.calculateLargestSource(roomName));
         return utilities.getInternalEnergy(source) - utilities.getInternalEnergy(sink) < creep.carryCapacity &&
-            utilities.countCreeps().logistics > 2;
+            utilities.countCreeps().logistics > 3;
     },
     balance: function (creep) {
         var source = Game.getObjectById(this.calculateLargestSource(creep.room.name));
@@ -35,7 +37,7 @@ var logistics = {
             utilities.getInternalEnergy(sink) < utilities.getCapacity(sink) * 4 / 5) {
             creep.memory.source = source.id;
             creep.memory.sink = sink.id;
-            if (creep.carry.energy == creep.carryCapacity) {
+            if (creep.carry.energy > 0) {
                 creep.memory.subtask = "deliver";
             } else {
                 creep.memory.subtask = "pickup";
@@ -52,7 +54,7 @@ var logistics = {
         if (sink && source) {
             creep.memory.source = source.id;
             creep.memory.sink = sink.id;
-            if (creep.carry.energy == creep.carryCapacity) {
+            if (creep.carry.energy > 0) {
                 creep.memory.subtask = "deliver";
             } else {
                 creep.memory.subtask = "pickup";
@@ -169,7 +171,7 @@ var logistics = {
                     utilities.getInternalEnergy(structure) < utilities.getCapacity(structure);
             }
         });
-        if (sinks) {
+        if (sinks[0]) {
             var minTarget = sinks[0];
             var minValue = utilities.getInternalEnergy(sinks[0]);
             for (var sinkName in sinks) {
@@ -209,7 +211,7 @@ var logistics = {
     },
     calculateClosestSink: function (creep) {
         var sink;
-        if (utilities.countCreeps().logistics < 2) {
+        if (utilities.countCreeps().logistics < 2 || utilities.countCreeps().harvester < 2) {
             sink = creep.pos.findClosestByPath(FIND_STRUCTURES, {
                 filter: function (structure) {
                     return (structure.structureType == STRUCTURE_EXTENSION || structure.structureType == STRUCTURE_SPAWN) &&
@@ -252,15 +254,17 @@ var logistics = {
         creep.moveTo(target)
     },
     transfer: function (creep) {
-        if (!creep.memory.destinatioRoom) {
+        var destinationRoom = creep.memory.destinationRoom;
+        if (!destinationRoom) {
             creep.memory.task = null;
             return;
         }
-        if (creep.room.name != creep.memory.destinationRoom) {
-            creep.moveTo(room, {reusePath: 10});
+        if (creep.room.name != destinationRoom) {
+            creep.moveTo(creep.pos.findClosestByPath(creep.room.findExitTo(destinationRoom)), {reusePath: 10});
         } else {
             creep.memory.destinationRoom = null;
             creep.memory.task = null;
+            this.run(creep);
         }
     }
 };
