@@ -25,8 +25,12 @@ var logistics = {
             utilities.countCreeps().logistics > 2;
     },
     balance: function (creep) {
-        var sink = Game.getObjectById(this.calculateSmallestSink(creep.room.name));
         var source = Game.getObjectById(this.calculateLargestSource(creep.room.name));
+        var sink = Game.getObjectById(this.checkClosestLink(creep));
+        if (!(utilities.getInternalEnergy(source) - utilities.getInternalEnergy(sink) > 0)) {
+            sink = Game.getObjectById(this.calculateSmallestSink(creep.room.name));
+        }
+
         if (utilities.getInternalEnergy(source) - utilities.getInternalEnergy(sink) > creep.carryCapacity * 2 &&
             utilities.getInternalEnergy(sink) < utilities.getCapacity(sink) * 4 / 5) {
             creep.memory.source = source.id;
@@ -73,7 +77,7 @@ var logistics = {
         if (target) {
             responseCode = creep.pickup(target);
             if (responseCode == ERR_NOT_IN_RANGE) {
-                this.move(creep,target);
+                this.move(creep, target);
             }
         } else {
             creep.memory.subtask = null;
@@ -95,7 +99,7 @@ var logistics = {
         }
         var responseCode = creep.withdraw(target, RESOURCE_ENERGY);
         if (responseCode == ERR_NOT_IN_RANGE) {
-            this.move(creep,target);
+            this.move(creep, target);
         }
         if (responseCode == ERR_INVALID_TARGET) {
             creep.memory.subtask = null;
@@ -115,7 +119,7 @@ var logistics = {
         }
         var responseCode = creep.transfer(target, RESOURCE_ENERGY);
         if (responseCode == ERR_NOT_IN_RANGE) {
-            this.move(creep,target);
+            this.move(creep, target);
             return;
         }
         if (responseCode == ERR_INVALID_TARGET) {
@@ -129,6 +133,10 @@ var logistics = {
         }
     },
     run: function (creep) {
+        //clear subtask to re-evaluate
+        if ((Game.time + creep.name ) % 5 == 0) {
+            creep.subtask = null;
+        }
         if (this.shouldRecycle(creep)) {
             creep.memory.subtask = null;
             creep.memory.task = "recycle";
@@ -140,6 +148,14 @@ var logistics = {
             this[creep.memory.subtask](creep);
         } else {
             this[creep.memory.task](creep);
+        }
+    },
+    checkClosestLink: function (creep) {
+        var link = creep.pos.findClosestByPath(FIND_STRUCTURES, {
+            filter: {structureType: STRUCTURE_LINK}
+        });
+        if (link.energy < link.energyCapacity) {
+            return link.id
         }
     },
     calculateSmallestSink: function (roomName) {
@@ -232,16 +248,16 @@ var logistics = {
 
         if (source) return source.id;
     },
-    move: function (creep,target) {
-        creep.moveTo(target,{reusePath: 3})
+    move: function (creep, target) {
+        creep.moveTo(target)
     },
-    transfer: function(creep){
-        if(!creep.memory.destinatioRoom){
+    transfer: function (creep) {
+        if (!creep.memory.destinatioRoom) {
             creep.memory.task = null;
             return;
         }
-        if(creep.room.name != creep.memory.destinationRoom){
-            creep.moveTo(room,{reusePath: 10});
+        if (creep.room.name != creep.memory.destinationRoom) {
+            creep.moveTo(room, {reusePath: 10});
         } else {
             creep.memory.destinationRoom = null;
             creep.memory.task = null;
