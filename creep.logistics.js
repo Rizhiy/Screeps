@@ -13,7 +13,7 @@ var logistics = {
     canSpawn: function (roomName) {
         var sink = Game.getObjectById(this.calculateSmallestSink(roomName));
         var source = Game.getObjectById(this.calculateLargestSource(roomName));
-        return utilities.getInternalEnergy(source) - utilities.getInternalEnergy(sink) > 500 &&
+        return utilities.getInternalEnergy(source) - utilities.getInternalEnergy(sink) > 1000 &&
             (source.structureType != STRUCTURE_STORAGE || utilities.getInternalEnergy(sink) < utilities.getCapacity(sink) * 0.8) ||
             utilities.countCreeps().logistics == 0;
     },
@@ -21,14 +21,13 @@ var logistics = {
         var roomName = creep.room.name;
         var sink = Game.getObjectById(this.calculateSmallestSink(roomName));
         var source = Game.getObjectById(this.calculateLargestSource(roomName));
-        return utilities.getInternalEnergy(source) - utilities.getInternalEnergy(sink) < 100 &&
+        return utilities.getInternalEnergy(source) - utilities.getInternalEnergy(sink) < creep.carryCapacity &&
             utilities.countCreeps().logistics > 2;
     },
     balance: function (creep) {
         var sink = Game.getObjectById(this.calculateSmallestSink(creep.room.name));
         var source = Game.getObjectById(this.calculateLargestSource(creep.room.name));
-        if (utilities.getInternalEnergy(sink) < utilities.getInternalEnergy(source) &&
-
+        if (utilities.getInternalEnergy(source) - utilities.getInternalEnergy(sink) > creep.carryCapacity * 2 &&
             utilities.getInternalEnergy(sink) < utilities.getCapacity(sink) * 4 / 5) {
             creep.memory.source = source.id;
             creep.memory.sink = sink.id;
@@ -235,6 +234,18 @@ var logistics = {
     },
     move: function (creep,target) {
         creep.moveTo(target,{reusePath: 3})
+    },
+    transfer: function(creep){
+        if(!creep.memory.destinatioRoom){
+            creep.memory.task = null;
+            return;
+        }
+        if(creep.room.name != creep.memory.destinationRoom){
+            creep.moveTo(room,{reusePath: 10});
+        } else {
+            creep.memory.destinationRoom = null;
+            creep.memory.task = null;
+        }
     }
 };
 
